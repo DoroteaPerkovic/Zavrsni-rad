@@ -4,12 +4,20 @@ import bcrypt from "bcrypt";
 import { supabase } from "./supabaseClient.js";
 import cron from "node-cron";
 import { generateTokens, verifyAccessToken, verifyRefreshToken } from "./tokens.js";
+import gtfRoutes from "./gtfs.js";
 
 const app = express();
 const port = 5000;
 
-app.use(cors());
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true
+}));
+
 app.use(express.json());
+
+
+app.use("/gtfs", gtfRoutes);
 
 app.post("/register", async (req, res) => {
   const { username, email, password } = req.body;
