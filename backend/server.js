@@ -5,6 +5,7 @@ import { supabase } from "./supabaseClient.js";
 import cron from "node-cron";
 import { generateTokens, verifyAccessToken, verifyRefreshToken } from "./tokens.js";
 import gtfsRoutes from "./gtfs.js";
+import {spawn} from "child_process";
 
 const app = express();
 const port = 5000;
@@ -102,6 +103,27 @@ app.post("/refresh", (req, res) => {
   } catch (err) {
     res.status(403).json({ message: "Refresh token nije valjan" });
   }
+});
+
+app.get("/api/ruta", (req, res) => {
+  const { start, end } = req.query; // npr. /api/ruta?start=264_2&end=115_4
+
+  const python = spawn('python', ['./algrs/main.py', start, end]);
+
+  let dataString = '';
+
+  python.stdout.on('data', (data) => {
+    dataString += data.toString();
+  });
+
+  python.on('close', (code) => {
+    try {
+      const result = JSON.parse(dataString);
+      res.json(result);
+    } catch (e) {
+      res.status(500).json({ error: "Greška u obradi algoritma", raw: dataString });
+    }
+  });
 });
 
 cron.schedule("* * * * *", async () => {
