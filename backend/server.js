@@ -106,22 +106,34 @@ app.post("/refresh", (req, res) => {
 });
 
 app.get("/api/ruta", (req, res) => {
-  const { start, end } = req.query; // npr. /api/ruta?start=264_2&end=115_4
+  const { start, end, alg } = req.query; 
 
-  const python = spawn('python', ['./algrs/main.py', start, end]);
+  const python = spawn('python', ['./algrs/main.py', start, end, alg]);
 
   let dataString = '';
+  let errorString = '';
+
+  python.stderr.on('data', (data) => {
+    console.log("LOG IZ PYTHONA:", data.toString());
+});
 
   python.stdout.on('data', (data) => {
     dataString += data.toString();
   });
 
+  python.stderr.on('data', (data) => {
+    errorString += data.toString();
+  });
+
   python.on('close', (code) => {
+    if (code !== 0) {
+      return res.status(500).json({ error: "Python skripta je pala", details: errorString });
+    }
     try {
       const result = JSON.parse(dataString);
       res.json(result);
     } catch (e) {
-      res.status(500).json({ error: "Greška u obradi algoritma", raw: dataString });
+      res.status(500).json({ error: "Greška u parsiranju JSON-a", raw: dataString });
     }
   });
 });

@@ -11,20 +11,26 @@ def dohvati_lokacije(supabase):
     bus_stanice = supabase.table("bus_stops").select("stop_id, stop_name, stop_lat, stop_lon").execute()
     sve_stanice = tram_stanice.data + bus_stanice.data
 
-    lokacije = {
-        str(s["stop_id"]): (float(s["stop_lat"]), float(s["stop_lon"]), s["stop_name"])
-        for s in sve_stanice
-    }
+    lokacije = {}
+    for s in sve_stanice:
+        sid = str(s["stop_id"])
+        lokacije[sid] = {
+            "lat": float(s["stop_lat"]),
+            "lon": float(s["stop_lon"]),
+            "name": s["stop_name"]
+        }
     return lokacije
 
 def dohvati_graf(supabase):
-    odgovor = supabase.table("graph_edges_view").select("source, target, duration").execute()
+    odgovor = supabase.table("mreza_veza").select("source_stop, target_stop, duration_sec, distance_m, linija_ime").limit(100000).execute()
     succ = {}
     for red in odgovor.data:
-        s1,s2 = str(red["source"]), str(red["target"])
-        trajanje = float(red["duration"])
+        s1,s2 = str(red["source_stop"]).strip(), str(red["target_stop"]).strip()
+        trajanje = float(red["duration_sec"] or 0)
+        udaljenost = float(red["distance_m"] or 0)
+        linija = red["linija_ime"]
 
         if s1 not in succ:
             succ[s1] = []
-        succ[s1].append((s2, max(trajanje,1.0)))
+        succ[s1].append((s2, max(trajanje,1.0), udaljenost, linija))
     return succ
